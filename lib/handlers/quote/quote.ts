@@ -12,7 +12,7 @@ import {
   SwapOptions,
   SwapType,
   SimulationStatus,
-} from '@uniswap/smart-order-router'
+} from '@tokamak-network/smart-order-router'
 import { Pool } from '@uniswap/v3-sdk'
 import JSBI from 'jsbi'
 import _ from 'lodash'
