@@ -1,4 +1,4 @@
-import { GasPrice, IGasPriceProvider } from '@tokamak-network/smart-order-router'
+import { GasPrice, IGasPriceProvider } from '@tokamak-network/tokamak-smart-order-router'
 import { BigNumber } from 'ethers'
 
 export class StaticGasPriceProvider implements IGasPriceProvider {

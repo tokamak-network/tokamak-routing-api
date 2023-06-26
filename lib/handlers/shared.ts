@@ -6,7 +6,7 @@ import {
   ITokenProvider,
   nativeOnChain,
   NATIVE_NAMES_BY_ID,
-} from '@tokamak-network/smart-order-router'
+} from '@tokamak-network/tokamak-smart-order-router'
 import Logger from 'bunyan'
 
 export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (chainId?: ChainId): AlphaRouterConfig => { 

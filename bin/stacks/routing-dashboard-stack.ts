@@ -1,4 +1,4 @@
-import { ChainId } from '@tokamak-network/smart-order-router'
+import { ChainId } from '@tokamak-network/tokamak-smart-order-router'
 import * as cdk from 'aws-cdk-lib'
 import * as aws_cloudwatch from 'aws-cdk-lib/aws-cloudwatch'
 import { Construct } from 'constructs'

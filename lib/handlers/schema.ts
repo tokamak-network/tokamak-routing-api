@@ -1,5 +1,5 @@
 import Joi from '@hapi/joi'
-import { MethodParameters } from '@tokamak-network/smart-order-router'
+import { MethodParameters } from '@tokamak-network/tokamak-smart-order-router'
 
 export type TokenInRoute = {
   address: string

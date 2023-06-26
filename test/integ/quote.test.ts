@@ -15,12 +15,12 @@ import {
   USDC_MAINNET,
   USDT_MAINNET,
   WBTC_MAINNET,
-} from '@tokamak-network/smart-order-router'
+} from '@tokamak-network/tokamak-smart-order-router'
 import {
   PERMIT2_ADDRESS,
   UNIVERSAL_ROUTER_ADDRESS as UNIVERSAL_ROUTER_ADDRESS_BY_CHAIN,
 } from '@uniswap/universal-router-sdk'
-import { MethodParameters } from '@tokamak-network/smart-order-router'
+import { MethodParameters } from '@tokamak-network/tokamak-smart-order-router'
 import { fail } from 'assert'
 import axiosStatic, { AxiosResponse } from 'axios'
 import axiosRetry from 'axios-retry'

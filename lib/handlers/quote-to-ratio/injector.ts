@@ -7,7 +7,7 @@ import {
   setGlobalMetric,
   SwapAndAddConfig,
   V3HeuristicGasModelFactory,
-} from '@tokamak-network/smart-order-router'
+} from '@tokamak-network/tokamak-smart-order-router'
 import { MetricsLogger } from 'aws-embedded-metrics'
 import { APIGatewayProxyEvent, Context } from 'aws-lambda'
 import { default as bunyan, default as Logger } from 'bunyan'

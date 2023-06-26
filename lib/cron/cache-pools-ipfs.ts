@@ -1,5 +1,5 @@
 import pinataSDK from '@pinata/sdk'
-import { ID_TO_NETWORK_NAME } from '@tokamak-network/smart-order-router'
+import { ID_TO_NETWORK_NAME } from '@tokamak-network/tokamak-smart-order-router'
 import { EventBridgeEvent, ScheduledHandler } from 'aws-lambda'
 import { Route53, STS } from 'aws-sdk'
 import { default as bunyan, default as Logger } from 'bunyan'

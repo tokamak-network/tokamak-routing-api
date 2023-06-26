@@ -1,4 +1,4 @@
-import { SimulationStatus } from '@tokamak-network/smart-order-router'
+import { SimulationStatus } from '@tokamak-network/tokamak-smart-order-router'
 import Logger from 'bunyan'
 
 export const simulationStatusToString = (simulationStatus: SimulationStatus | undefined, log: Logger) => {

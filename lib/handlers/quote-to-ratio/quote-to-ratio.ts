@@ -10,7 +10,7 @@ import {
   SwapAndAddOptions,
   SwapToRatioStatus,
   SwapType,
-} from '@tokamak-network/smart-order-router'
+} from '@tokamak-network/tokamak-smart-order-router'
 import { Position } from '@uniswap/v3-sdk'
 import JSBI from 'jsbi'
 import { APIGLambdaHandler, ErrorResponse, HandleRequestParams, Response } from '../handler'

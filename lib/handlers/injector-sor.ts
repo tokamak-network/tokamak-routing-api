@@ -30,7 +30,7 @@ import {
   V2PoolProvider,
   V2QuoteProvider,
   V3PoolProvider,
-} from '@tokamak-network/smart-order-router'
+} from '@tokamak-network/tokamak-smart-order-router'
 import { TokenList } from '@uniswap/token-lists'
 import { default as bunyan, default as Logger } from 'bunyan'
 import { ethers } from 'ethers'
