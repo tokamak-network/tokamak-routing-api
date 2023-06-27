@@ -9,7 +9,7 @@ import {
 } from '@tokamak-network/tokamak-smart-order-router'
 import Logger from 'bunyan'
 
-export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (chainId?: ChainId): AlphaRouterConfig => { 
+export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (chainId?: ChainId): AlphaRouterConfig => {
   return {
     v2PoolSelection: {
       topN: 3,

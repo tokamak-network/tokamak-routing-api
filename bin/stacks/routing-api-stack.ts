@@ -15,9 +15,7 @@ import { RoutingCachingStack } from './routing-caching-stack'
 import { RoutingDashboardStack } from './routing-dashboard-stack'
 import { RoutingLambdaStack } from './routing-lambda-stack'
 
-export const CHAINS_NOT_MONITORED: ChainId[] = [
-  
-]
+export const CHAINS_NOT_MONITORED: ChainId[] = []
 
 export class RoutingAPIStack extends cdk.Stack {
   public readonly url: CfnOutput
