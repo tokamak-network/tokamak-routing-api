@@ -21,12 +21,12 @@ export const chainProtocols = [
     timeout: 90000,
     provider: new V3SubgraphProvider(ChainId.TOKAMAK_GOERLI, 3, 90000),
   },
-  // {
-  //   protocol: Protocol.V3,
-  //   chainId: ChainId.POLYGON,
-  //   timeout: 90000,
-  //   provider: new V3SubgraphProvider(ChainId.POLYGON, 3, 90000),
-  // },
+  {
+    protocol: Protocol.V3,
+    chainId: ChainId.GÖRLI,
+    timeout: 90000,
+    provider: new V3SubgraphProvider(ChainId.GÖRLI, 3, 90000),
+  },
   // {
   //   protocol: Protocol.V3,
   //   chainId: ChainId.CELO,
