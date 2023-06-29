@@ -46,6 +46,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.TOKAMAK_GOERLI,
   ChainId.MAINNET,
   ChainId.GÖRLI,
+  ChainId.TITAN,
 ]
 const DEFAULT_TOKEN_LIST = 'https://gateway.ipfs.io/ipns/tokens.uniswap.org'
 
@@ -145,42 +146,42 @@ export abstract class InjectorSOR<Router, QueryParams> extends Injector<
         // Some providers like Infura set a gas limit per call of 10x block gas which is approx 150m
         // 200*725k < 150m
         let quoteProvider: OnChainQuoteProvider | undefined = undefined
-        switch (chainId) {
-          // case ChainId.TOKAMAK:
-          case ChainId.TOKAMAK_GOERLI:
-            quoteProvider = new OnChainQuoteProvider(
-              chainId,
-              provider,
-              multicall2Provider,
-              {
-                retries: 2,
-                minTimeout: 100,
-                maxTimeout: 1000,
-              },
-              {
-                multicallChunk: 110,
-                gasLimitPerCall: 1_200_000,
-                quoteMinSuccessRate: 0.1,
-              },
-              {
-                gasLimitOverride: 3_000_000,
-                multicallChunk: 45,
-              },
-              {
-                gasLimitOverride: 3_000_000,
-                multicallChunk: 45,
-              },
-              {
-                baseBlockOffset: -25,
-                rollback: {
-                  enabled: true,
-                  attemptsBeforeRollback: 1,
-                  rollbackBlockOffset: -20,
-                },
-              }
-            )
-            break
-        }
+        // switch (chainId) {
+        //   // case ChainId.TOKAMAK:
+        //   case ChainId.TOKAMAK_GOERLI:
+        //     quoteProvider = new OnChainQuoteProvider(
+        //       chainId,
+        //       provider,
+        //       multicall2Provider,
+        //       {
+        //         retries: 2,
+        //         minTimeout: 100,
+        //         maxTimeout: 1000,
+        //       },
+        //       {
+        //         multicallChunk: 110,
+        //         gasLimitPerCall: 1_200_000,
+        //         quoteMinSuccessRate: 0.1,
+        //       },
+        //       {
+        //         gasLimitOverride: 3_000_000,
+        //         multicallChunk: 45,
+        //       },
+        //       {
+        //         gasLimitOverride: 3_000_000,
+        //         multicallChunk: 45,
+        //       },
+        //       {
+        //         baseBlockOffset: -25,
+        //         rollback: {
+        //           enabled: true,
+        //           attemptsBeforeRollback: 1,
+        //           rollbackBlockOffset: -20,
+        //         },
+        //       }
+        //     )
+        //     break
+        // }
 
         const v3PoolProvider = new CachingV3PoolProvider(
           chainId,
