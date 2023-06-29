@@ -26,6 +26,7 @@ export class RoutingAPIStage extends Stage {
       ethGasStationInfoUrl: string
       chatbotSNSArn?: string
       stage: string
+      internalApiKey?: string
       route53Arn?: string
       pinata_key?: string
       pinata_secret?: string
@@ -42,6 +43,7 @@ export class RoutingAPIStage extends Stage {
       ethGasStationInfoUrl,
       chatbotSNSArn,
       stage,
+      internalApiKey,
       route53Arn,
       pinata_key,
       pinata_secret,
@@ -57,6 +59,7 @@ export class RoutingAPIStage extends Stage {
       ethGasStationInfoUrl,
       chatbotSNSArn,
       stage,
+      internalApiKey,
       route53Arn,
       pinata_key,
       pinata_secret,
@@ -107,7 +110,7 @@ export class RoutingAPIPipeline extends Stack {
     const jsonRpcProvidersSecret = sm.Secret.fromSecretAttributes(this, 'RPCProviderUrls', {
       // The main secrets use our Infura RPC urls
       secretCompleteArn:
-        'arn:aws:secretsmanager:ap_northeast-2:005310045109:secret:routing-api-rpc-urls-json-primary-ixS8mw',
+        'arn:aws:secretsmanager:ap_northeast-2:156512274928:secret:routing-api-rpc-urls-json-primary-ixS8mw',
       /*
       The backup secrets mostly use our Alchemy RPC urls
       However Alchemy does not support Rinkeby, Ropsten, and Kovan
@@ -116,30 +119,34 @@ export class RoutingAPIPipeline extends Stack {
       we must set the multicall chunk size to 50 so that optimism
       does not bug out on Alchemy's end
       */
-      //secretCompleteArn: arn:aws:secretsmanager:ap_northeast-2:005310045109:secret:routing-api-rpc-urls-json-backup-D2sWoe
+      //secretCompleteArn: arn:aws:secretsmanager:ap_northeast-2:156512274928:secret:routing-api-rpc-urls-json-backup-D2sWoe
     })
 
     const tenderlyCreds = sm.Secret.fromSecretAttributes(this, 'TenderlyCreds', {
-      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:005310045109:secret:tenderly-api-wQaI2R',
+      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:156512274928:secret:tenderly-api-wQaI2R',
     })
 
     const ethGasStationInfoUrl = sm.Secret.fromSecretAttributes(this, 'ETHGasStationUrl', {
-      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:005310045109:secret:eth-gas-station-info-url-ulGncX',
+      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:156512274928:secret:eth-gas-station-info-url-ulGncX',
     })
 
     const pinataApi = sm.Secret.fromSecretAttributes(this, 'PinataAPI', {
-      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:005310045109:secret:pinata-api-key-UVLAfM',
+      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:156512274928:secret:pinata-api-key-UVLAfM',
     })
     const route53Arn = sm.Secret.fromSecretAttributes(this, 'Route53Arn', {
-      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:005310045109:secret:Route53Arn-elRmmw',
+      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:156512274928:secret:Route53Arn-elRmmw',
     })
 
     const pinataSecret = sm.Secret.fromSecretAttributes(this, 'PinataSecret', {
-      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:005310045109:secret:pinata-secret-svGaPt',
+      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:156512274928:secret:pinata-secret-svGaPt',
     })
 
     const hostedZone = sm.Secret.fromSecretAttributes(this, 'HostedZone', {
-      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:005310045109:secret:hosted-zone-JmPDNV',
+      secretCompleteArn: 'arn:aws:secretsmanager:ap_northeast-2:156512274928:secret:hosted-zone-JmPDNV',
+    })
+
+    const internalApiKey = sm.Secret.fromSecretAttributes(this, 'internal-api-key', {
+      secretCompleteArn: 'arn:aws:secretsmanager:us-east-2:644039819003:secret:routing-api-internal-api-key-Z68NmB',
     })
 
     // Parse AWS Secret
@@ -152,9 +159,10 @@ export class RoutingAPIPipeline extends Stack {
 
     // Beta us-east-2
     const betaUsEast2Stage = new RoutingAPIStage(this, 'beta-us-east-2', {
-      env: { account: '005310045109', region: 'ap-northeast-2' },
+      env: { account: '156512274928', region: 'ap-northeast-2' },
       jsonRpcProviders: jsonRpcProviders,
-      provisionedConcurrency: 20,
+      internalApiKey: internalApiKey.secretValue.toString(),
+      provisionedConcurrency: 100,
       ethGasStationInfoUrl: ethGasStationInfoUrl.secretValue.toString(),
       stage: STAGE.BETA,
       route53Arn: route53Arn.secretValueFromJson('arn').toString(),
@@ -172,11 +180,12 @@ export class RoutingAPIPipeline extends Stack {
 
     // Prod us-east-2
     const prodUsEast2Stage = new RoutingAPIStage(this, 'prod-us-east-2', {
-      env: { account: '005310045109', region: 'ap-northeast-2' },
+      env: { account: '156512274928', region: 'ap-northeast-2' },
       jsonRpcProviders: jsonRpcProviders,
+      internalApiKey: internalApiKey.secretValue.toString(),
       provisionedConcurrency: 100,
       ethGasStationInfoUrl: ethGasStationInfoUrl.secretValue.toString(),
-      // chatbotSNSArn: 'arn:aws:sns:ap_northeast-2:005310045109:SlackChatbotTopic',
+      // chatbotSNSArn: 'arn:aws:sns:ap_northeast-2:156512274928:SlackChatbotTopic',
       stage: STAGE.PROD,
       route53Arn: route53Arn.secretValueFromJson('arn').toString(),
       pinata_key: pinataApi.secretValueFromJson('pinata-api-key').toString(),
@@ -252,12 +261,14 @@ const jsonRpcProviders = {
   WEB3_RPC_69: process.env.JSON_RPC_PROVIDER_69!,
   WEB3_RPC_42161: process.env.JSON_RPC_PROVIDER_42161!,
   WEB3_RPC_421611: process.env.JSON_RPC_PROVIDER_421611!,
+  WEB3_RPC_11155111: process.env.JSON_RPC_PROVIDER_11155111!,
   WEB3_RPC_421613: process.env.JSON_RPC_PROVIDER_421613!,
   WEB3_RPC_137: process.env.JSON_RPC_PROVIDER_137!,
   WEB3_RPC_80001: process.env.JSON_RPC_PROVIDER_80001!,
   WEB3_RPC_42220: process.env.JSON_RPC_PROVIDER_42220!,
   WEB3_RPC_44787: process.env.JSON_RPC_PROVIDER_44787!,
   WEB3_RPC_5050: process.env.JSON_RPC_PROVIDER_5050!,
+  WEB3_RPC_55004: process.env.JSON_RPC_PROVIDER_55004!,
 }
 
 // Local dev stack
@@ -268,6 +279,7 @@ new RoutingAPIStack(app, 'RoutingAPIStack', {
   ethGasStationInfoUrl: process.env.ETH_GAS_STATION_INFO_URL!,
   chatbotSNSArn: process.env.CHATBOT_SNS_ARN,
   stage: STAGE.LOCAL,
+  internalApiKey: 'test-api-key',
   route53Arn: process.env.ROLE_ARN,
   pinata_key: process.env.PINATA_API_KEY!,
   pinata_secret: process.env.PINATA_API_SECRET!,
@@ -275,9 +287,9 @@ new RoutingAPIStack(app, 'RoutingAPIStack', {
   tenderlyUser: process.env.TENDERLY_USER!,
   tenderlyProject: process.env.TENDERLY_PROJECT!,
   tenderlyAccessKey: process.env.TENDERLY_ACCESS_KEY!,
-  env: { account: '005310045109', region: 'ap-northeast-2' },
+  env: { account: '156512274928', region: 'ap-northeast-2' },
 })
 
 new RoutingAPIPipeline(app, 'RoutingAPIPipelineStack', {
-  env: { account: '005310045109', region: 'ap-northeast-2' },
+  env: { account: '156512274928', region: 'ap-northeast-2' },
 })

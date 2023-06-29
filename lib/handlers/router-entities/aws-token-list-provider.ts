@@ -1,10 +1,10 @@
 import {
   CachingTokenListProvider,
-  ChainId,
   ITokenListProvider,
   ITokenProvider,
   log,
   NodeJSCache,
+  ChainId,
 } from '@tokamak-network/tokamak-smart-order-router'
 import { TokenList } from '@uniswap/token-lists'
 import S3 from 'aws-sdk/clients/s3'

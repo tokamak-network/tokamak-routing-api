@@ -1,9 +1,12 @@
-import { ChainId } from '@tokamak-network/tokamak-smart-order-router'
+import { ChainId,  } from '@tokamak-network/tokamak-smart-order-router'
 import * as cdk from 'aws-cdk-lib'
 import * as aws_cloudwatch from 'aws-cdk-lib/aws-cloudwatch'
 import { Construct } from 'constructs'
 import _ from 'lodash'
+import { QuoteAmountsWidgetsFactory } from '../../lib/dashboards/quote-amounts-widgets-factory'
 import { SUPPORTED_CHAINS } from '../../lib/handlers/injector-sor'
+import { CachedRoutesWidgetsFactory } from '../../lib/dashboards/cached-routes-widgets-factory'
+import { ID_TO_NETWORK_NAME } from '@tokamak-network/tokamak-smart-order-router/build/main/util/chains'
 
 export const NAMESPACE = 'Uniswap'
 
@@ -29,6 +32,17 @@ export class RoutingDashboardStack extends cdk.NestedStack {
 
     const { apiName, routingLambdaName, poolCacheLambdaNameArray, ipfsPoolCacheLambdaName } = props
     const region = cdk.Stack.of(this).region
+
+    const TESTNETS = [
+      ChainId.ARBITRUM_GOERLI,
+      ChainId.POLYGON_MUMBAI,
+      ChainId.GÖRLI,
+      ChainId.TOKAMAK_GOERLI,
+      // ChainId.SEPOLIA,
+      ChainId.CELO_ALFAJORES,
+    ]
+
+    const MAINNETS = SUPPORTED_CHAINS.filter((chain) => !TESTNETS.includes(chain))
 
     // No CDK resource exists for contributor insights at the moment so use raw CloudFormation.
     const REQUESTED_QUOTES_RULE_NAME = 'RequestedQuotes'
@@ -90,39 +104,348 @@ export class RoutingDashboardStack extends cdk.NestedStack {
       poolCacheLambdaMetrics.push(['AWS/Lambda', `${poolCacheLambdaName}Errors`, 'FunctionName', poolCacheLambdaName])
       poolCacheLambdaMetrics.push(['.', `${poolCacheLambdaName}Invocations`, '.', '.'])
     })
+
+    const perChainWidgetsForRoutingDashboard: any[] = _.flatMap([MAINNETS, TESTNETS], (chains) => [
+      {
+        height: 8,
+        width: 24,
+        type: 'metric',
+        properties: {
+          metrics: chains.map((chainId) => [
+            NAMESPACE,
+            `GET_QUOTE_REQUESTED_CHAINID: ${chainId}`,
+            'Service',
+            'RoutingAPI',
+            { id: `mreqc${chainId}`, label: `Requests on ${ID_TO_NETWORK_NAME(chainId)}` },
+          ]),
+          view: 'timeSeries',
+          stacked: false,
+          region,
+          stat: 'Sum',
+          period: 300,
+          title: 'Requests by Chain',
+          setPeriodToTimeRange: true,
+          yAxis: {
+            left: {
+              showUnits: false,
+              label: 'Requests',
+            },
+          },
+        },
+      },
+      {
+        type: 'metric',
+        width: 12,
+        height: 8,
+        properties: {
+          view: 'timeSeries',
+          stacked: false,
+          metrics: _.flatMap(chains, (chainId) => [
+            [
+              NAMESPACE,
+              `GET_QUOTE_LATENCY_CHAIN_${chainId}`,
+              'Service',
+              'RoutingAPI',
+              { stat: 'p99.99', label: `${ID_TO_NETWORK_NAME(chainId)} P99.99` },
+            ],
+            ['...', { stat: 'p99.9', label: `${ID_TO_NETWORK_NAME(chainId)} P99.9` }],
+            ['...', { stat: 'p99', label: `${ID_TO_NETWORK_NAME(chainId)} P99` }],
+          ]),
+          region,
+          title: `P99.X Latency by Chain`,
+          period: 300,
+          setPeriodToTimeRange: true,
+          stat: 'SampleCount',
+          yAxis: {
+            left: {
+              min: 0,
+              showUnits: false,
+              label: 'Milliseconds',
+            },
+          },
+        },
+      },
+      {
+        type: 'metric',
+        width: 12,
+        height: 8,
+        properties: {
+          view: 'timeSeries',
+          stacked: false,
+          metrics: _.flatMap(chains, (chainId) => [
+            [
+              NAMESPACE,
+              `GET_QUOTE_LATENCY_CHAIN_${chainId}`,
+              'Service',
+              'RoutingAPI',
+              { stat: 'p95', label: `${ID_TO_NETWORK_NAME(chainId)} P95` },
+            ],
+            ['...', { stat: 'p90', label: `${ID_TO_NETWORK_NAME(chainId)} P90` }],
+          ]),
+          region,
+          title: `P95 & P90 Latency by Chain`,
+          period: 300,
+          setPeriodToTimeRange: true,
+          stat: 'SampleCount',
+          yAxis: {
+            left: {
+              min: 0,
+              showUnits: false,
+              label: 'Milliseconds',
+            },
+          },
+        },
+      },
+      {
+        type: 'metric',
+        width: 12,
+        height: 8,
+        properties: {
+          view: 'timeSeries',
+          stacked: false,
+          metrics: _.flatMap(chains, (chainId) => [
+            [
+              NAMESPACE,
+              `GET_QUOTE_LATENCY_CHAIN_${chainId}`,
+              'Service',
+              'RoutingAPI',
+              { stat: 'p50', label: `${ID_TO_NETWORK_NAME(chainId)} Median` },
+            ],
+            ['...', { stat: 'Average', label: `${ID_TO_NETWORK_NAME(chainId)} Average` }],
+          ]),
+          region,
+          title: `Average and Median Latency by Chain`,
+          period: 300,
+          setPeriodToTimeRange: true,
+          stat: 'SampleCount',
+          yAxis: {
+            left: {
+              min: 0,
+              showUnits: false,
+              label: 'Milliseconds',
+            },
+          },
+        },
+      },
+      {
+        type: 'metric',
+        width: 12,
+        height: 8,
+        properties: {
+          view: 'timeSeries',
+          stacked: false,
+          metrics: _.flatMap(chains, (chainId) => [
+            [
+              NAMESPACE,
+              `GET_QUOTE_LATENCY_CHAIN_${chainId}`,
+              'Service',
+              'RoutingAPI',
+              { stat: 'Minimum', label: `${ID_TO_NETWORK_NAME(chainId)} Minimum` },
+            ],
+          ]),
+          region,
+          title: `Minimum Latency by Chain`,
+          period: 300,
+          setPeriodToTimeRange: true,
+          stat: 'SampleCount',
+          yAxis: {
+            left: {
+              min: 0,
+              showUnits: false,
+              label: 'Milliseconds',
+            },
+          },
+        },
+      },
+      {
+        height: 8,
+        width: 12,
+        type: 'metric',
+        properties: {
+          metrics: _.flatMap(chains, (chainId) => [
+            [
+              {
+                expression: `(m200c${chainId} / (mreqc${chainId} - m400c${chainId})) * 100`,
+                label: `Success Rate on ${ID_TO_NETWORK_NAME(chainId)}`,
+                id: `e1c${chainId}`,
+              },
+            ],
+            [
+              NAMESPACE,
+              `GET_QUOTE_REQUESTED_CHAINID: ${chainId}`,
+              'Service',
+              'RoutingAPI',
+              { id: `mreqc${chainId}`, label: `Requests on Chain ${chainId}`, visible: false },
+            ],
+            [
+              '.',
+              `GET_QUOTE_200_CHAINID: ${chainId}`,
+              '.',
+              '.',
+              { id: `m200c${chainId}`, label: `2XX Requests on Chain ${chainId}`, visible: false },
+            ],
+            [
+              '.',
+              `GET_QUOTE_400_CHAINID: ${chainId}`,
+              '.',
+              '.',
+              { id: `m400c${chainId}`, label: `4XX Errors on Chain ${chainId}`, visible: false },
+            ],
+          ]),
+          view: 'timeSeries',
+          stacked: false,
+          region,
+          stat: 'Sum',
+          period: 300,
+          title: 'Success Rates by Chain',
+          setPeriodToTimeRange: true,
+          yAxis: {
+            left: {
+              showUnits: false,
+              label: '%',
+            },
+          },
+        },
+      },
+      {
+        height: 8,
+        width: 12,
+        type: 'metric',
+        properties: {
+          metrics: _.flatMap(chains, (chainId) => [
+            [
+              {
+                expression: `(m200c${chainId} / mreqc${chainId}) * 100`,
+                label: `Success Rate (w. 4XX) on ${ID_TO_NETWORK_NAME(chainId)}`,
+                id: `e1c${chainId}`,
+              },
+            ],
+            [
+              NAMESPACE,
+              `GET_QUOTE_REQUESTED_CHAINID: ${chainId}`,
+              'Service',
+              'RoutingAPI',
+              { id: `mreqc${chainId}`, label: `Requests on Chain ${chainId}`, visible: false },
+            ],
+            [
+              '.',
+              `GET_QUOTE_200_CHAINID: ${chainId}`,
+              '.',
+              '.',
+              { id: `m200c${chainId}`, label: `2XX Requests on Chain ${chainId}`, visible: false },
+            ],
+          ]),
+          view: 'timeSeries',
+          stacked: false,
+          region,
+          stat: 'Sum',
+          period: 300,
+          title: 'Success Rates (w. 4XX) by Chain',
+          setPeriodToTimeRange: true,
+          yAxis: {
+            left: {
+              showUnits: false,
+              label: '%',
+            },
+          },
+        },
+      },
+      {
+        height: 8,
+        width: 12,
+        type: 'metric',
+        properties: {
+          metrics: _.flatMap(chains, (chainId) => [
+            [
+              {
+                expression: `(m500c${chainId} / mreqc${chainId}) * 100`,
+                label: `5XX Error Rate on ${ID_TO_NETWORK_NAME(chainId)}`,
+                id: `e1c${chainId}`,
+              },
+            ],
+            [
+              NAMESPACE,
+              `GET_QUOTE_REQUESTED_CHAINID: ${chainId}`,
+              'Service',
+              'RoutingAPI',
+              { id: `mreqc${chainId}`, label: `Requests on Chain ${chainId}`, visible: false },
+            ],
+            [
+              '.',
+              `GET_QUOTE_500_CHAINID: ${chainId}`,
+              '.',
+              '.',
+              { id: `m500c${chainId}`, label: `5XX Errors on Chain ${chainId}`, visible: false },
+            ],
+          ]),
+          view: 'timeSeries',
+          stacked: false,
+          region,
+          stat: 'Sum',
+          period: 300,
+          title: '5XX Error Rates by Chain',
+          setPeriodToTimeRange: true,
+          yAxis: {
+            left: {
+              showUnits: false,
+              label: '%',
+            },
+          },
+        },
+      },
+      {
+        height: 8,
+        width: 12,
+        type: 'metric',
+        properties: {
+          metrics: _.flatMap(chains, (chainId) => [
+            [
+              {
+                expression: `(m400c${chainId} / mreqc${chainId}) * 100`,
+                label: `4XX Error Rate on ${ID_TO_NETWORK_NAME(chainId)}`,
+                id: `e2c${chainId}`,
+              },
+            ],
+            [
+              NAMESPACE,
+              `GET_QUOTE_REQUESTED_CHAINID: ${chainId}`,
+              'Service',
+              'RoutingAPI',
+              { id: `mreqc${chainId}`, label: `Requests on Chain ${chainId}`, visible: false },
+            ],
+            [
+              '.',
+              `GET_QUOTE_400_CHAINID: ${chainId}`,
+              '.',
+              '.',
+              { id: `m400c${chainId}`, label: `4XX Errors on Chain ${chainId}`, visible: false },
+            ],
+          ]),
+          view: 'timeSeries',
+          stacked: false,
+          region,
+          stat: 'Sum',
+          period: 300,
+          title: '4XX Error Rates by Chain',
+          setPeriodToTimeRange: true,
+          yAxis: {
+            left: {
+              showUnits: false,
+              label: '%',
+            },
+          },
+        },
+      },
+    ])
+
     new aws_cloudwatch.CfnDashboard(this, 'RoutingAPIDashboard', {
       dashboardName: `RoutingDashboard`,
       dashboardBody: JSON.stringify({
         periodOverride: 'inherit',
-        widgets: [
-          {
-            type: 'metric',
-            x: 0,
-            y: 66,
-            width: 24,
-            height: 9,
-            properties: {
-              view: 'timeSeries',
-              stacked: false,
-              metrics: [
-                ...poolCacheLambdaMetrics,
-                ...(ipfsPoolCacheLambdaName
-                  ? [
-                      ['AWS/Lambda', 'Errors', 'FunctionName', ipfsPoolCacheLambdaName],
-                      ['.', 'Invocations', '.', '.'],
-                    ]
-                  : []),
-              ],
-              region: region,
-              title: 'Pool Cache Lambda Error/Invocations | 5min',
-              stat: 'Sum',
-            },
-          },
+        widgets: perChainWidgetsForRoutingDashboard.concat([
           {
             height: 6,
             width: 24,
-            y: 0,
-            x: 0,
             type: 'metric',
             properties: {
               metrics: [
@@ -135,14 +458,12 @@ export class RoutingDashboardStack extends cdk.NestedStack {
               region,
               stat: 'Sum',
               period: 300,
-              title: 'Total Requests/Responses | 5min',
+              title: 'Total Requests/Responses',
             },
           },
           {
             height: 6,
             width: 24,
-            y: 6,
-            x: 0,
             type: 'metric',
             properties: {
               metrics: [
@@ -176,7 +497,7 @@ export class RoutingDashboardStack extends cdk.NestedStack {
               region,
               stat: 'Average',
               period: 300,
-              title: '5XX/4XX Error Rates | 5min',
+              title: '5XX/4XX Error Rates',
               setPeriodToTimeRange: true,
               yAxis: {
                 left: {
@@ -189,8 +510,6 @@ export class RoutingDashboardStack extends cdk.NestedStack {
           {
             height: 6,
             width: 24,
-            y: 12,
-            x: 0,
             type: 'metric',
             properties: {
               metrics: [['AWS/ApiGateway', 'Latency', 'ApiName', apiName]],
@@ -199,13 +518,11 @@ export class RoutingDashboardStack extends cdk.NestedStack {
               region,
               period: 300,
               stat: 'p90',
-              title: 'Latency p90 | 5min',
+              title: 'Latency p90',
             },
           },
           {
             type: 'metric',
-            x: 0,
-            y: 18,
             width: 24,
             height: 6,
             properties: {
@@ -225,8 +542,6 @@ export class RoutingDashboardStack extends cdk.NestedStack {
           },
           {
             type: 'metric',
-            x: 0,
-            y: 25,
             width: 24,
             height: 6,
             properties: {
@@ -248,8 +563,6 @@ export class RoutingDashboardStack extends cdk.NestedStack {
           },
           {
             type: 'metric',
-            x: 0,
-            y: 26,
             width: 24,
             height: 6,
             properties: {
@@ -271,8 +584,6 @@ export class RoutingDashboardStack extends cdk.NestedStack {
           },
           {
             type: 'metric',
-            x: 0,
-            y: 24,
             width: 24,
             height: 6,
             properties: {
@@ -298,8 +609,6 @@ export class RoutingDashboardStack extends cdk.NestedStack {
           },
           {
             type: 'metric',
-            x: 0,
-            y: 30,
             width: 24,
             height: 6,
             properties: {
@@ -325,8 +634,6 @@ export class RoutingDashboardStack extends cdk.NestedStack {
           },
           {
             type: 'metric',
-            x: 0,
-            y: 36,
             width: 24,
             height: 6,
             properties: {
@@ -345,8 +652,6 @@ export class RoutingDashboardStack extends cdk.NestedStack {
           {
             height: 12,
             width: 24,
-            y: 42,
-            x: 0,
             type: 'metric',
             properties: {
               metrics: [
@@ -366,13 +671,11 @@ export class RoutingDashboardStack extends cdk.NestedStack {
               region,
               stat: 'p90',
               period: 300,
-              title: 'Latency Breakdown | 5min',
+              title: 'Latency Breakdown',
             },
           },
           {
             type: 'metric',
-            x: 0,
-            y: 48,
             width: 24,
             height: 9,
             properties: {
@@ -390,14 +693,12 @@ export class RoutingDashboardStack extends cdk.NestedStack {
                 ['.', 'V3topbybasewithtokenout', '.', '.'],
               ],
               region: region,
-              title: 'p95 V3 Top N Pools Used From Sources in Best Route | 5min',
+              title: 'p95 V3 Top N Pools Used From Sources in Best Route',
               stat: 'p95',
             },
           },
           {
             type: 'metric',
-            x: 0,
-            y: 54,
             width: 24,
             height: 9,
             properties: {
@@ -415,14 +716,12 @@ export class RoutingDashboardStack extends cdk.NestedStack {
                 ['.', 'V2topbybasewithtokenout', '.', '.'],
               ],
               region: region,
-              title: 'p95 V2 Top N Pools Used From Sources in Best Route | 5min',
+              title: 'p95 V2 Top N Pools Used From Sources in Best Route',
               stat: 'p95',
             },
           },
           {
             type: 'metric',
-            x: 0,
-            y: 60,
             width: 24,
             height: 9,
             properties: {
@@ -434,11 +733,50 @@ export class RoutingDashboardStack extends cdk.NestedStack {
                 ['.', 'ProvisionedConcurrencySpilloverInvocations', '.', '.'],
               ],
               region: region,
-              title: 'Routing Lambda Provisioned Concurrency | 5min',
+              title: 'Routing Lambda Provisioned Concurrency',
               stat: 'Average',
             },
           },
-        ],
+          {
+            type: 'metric',
+            width: 24,
+            height: 9,
+            properties: {
+              view: 'timeSeries',
+              stacked: false,
+              metrics: [
+                ...poolCacheLambdaMetrics,
+                ...(ipfsPoolCacheLambdaName
+                  ? [
+                      ['AWS/Lambda', 'Errors', 'FunctionName', ipfsPoolCacheLambdaName],
+                      ['.', 'Invocations', '.', '.'],
+                    ]
+                  : []),
+              ],
+              region: region,
+              title: 'Pool Cache Lambda Error/Invocations',
+              stat: 'Sum',
+            },
+          },
+        ]),
+      }),
+    })
+
+    const quoteAmountsWidgets = new QuoteAmountsWidgetsFactory(NAMESPACE, region)
+    new aws_cloudwatch.CfnDashboard(this, 'RoutingAPITrackedPairsDashboard', {
+      dashboardName: 'RoutingAPITrackedPairsDashboard',
+      dashboardBody: JSON.stringify({
+        periodOverride: 'inherit',
+        widgets: quoteAmountsWidgets.generateWidgets(),
+      }),
+    })
+
+    const cachedRoutesWidgets = new CachedRoutesWidgetsFactory(NAMESPACE, region, routingLambdaName)
+    new aws_cloudwatch.CfnDashboard(this, 'CachedRoutesPerformanceDashboard', {
+      dashboardName: 'CachedRoutesPerformanceDashboard',
+      dashboardBody: JSON.stringify({
+        periodOverride: 'inherit',
+        widgets: cachedRoutesWidgets.generateWidgets(),
       }),
     })
 

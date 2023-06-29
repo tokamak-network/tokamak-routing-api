@@ -6,7 +6,7 @@ It deploys an API to AWS that uses @tokamak-network/tokamak-smart-order-router t
 
 ## Development
 
-The develop on the Routing API you must have an AWS account where you can deploy your API for testing.
+To develop on the Routing API you must have an AWS account where you can deploy your API for testing.
 
 ### Deploying the API
 
@@ -21,7 +21,7 @@ The best way to develop and test the API is to deploy your own instance to AWS.
    # MAINNET = 1
    # ROPSTEN = 3
    # RINKEBY = 4
-   # GÖRLI = 5
+   # GOERLI = 5
    # KOVAN = 42
    # OPTIMISM = 10
    # OPTIMISTIC_KOVAN = 69
@@ -29,6 +29,7 @@ The best way to develop and test the API is to deploy your own instance to AWS.
    # ARBITRUM_RINKEBY = 421611
    # POLYGON = 137
    # POLYGON_MUMBAI = 80001
+   # BNB = 56
    TENDERLY_USER = '' # For enabling Tenderly simulations
    TENDERLY_PROJECT = '' # For enabling Tenderly simulations
    TENDERLY_ACCESS_KEY = '' # For enabling Tenderly simulations

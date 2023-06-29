@@ -1,6 +1,5 @@
 import { Protocol } from '@uniswap/router-sdk'
 import {
-  ChainId,
   IV2SubgraphProvider,
   IV3SubgraphProvider,
   log,
@@ -8,6 +7,7 @@ import {
   V3SubgraphPool,
 } from '@tokamak-network/tokamak-smart-order-router'
 import { S3 } from 'aws-sdk'
+import { ChainId } from '@uniswap/sdk-core'
 import NodeCache from 'node-cache'
 import { S3_POOL_CACHE_KEY } from '../../util/pool-cache-key'
 
@@ -51,6 +51,7 @@ export const cachePoolsFromS3 = async <TSubgraphPool>(
   chainId: ChainId,
   protocol: Protocol
 ) => {
+  //@ts-ignore
   const key = S3_POOL_CACHE_KEY(baseKey, chainId, protocol)
 
   let result

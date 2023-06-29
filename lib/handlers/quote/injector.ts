@@ -31,7 +31,11 @@ export class QuoteHandlerInjector extends InjectorSOR<
   ): Promise<RequestInjected<IRouter<AlphaRouterConfig | LegacyRoutingConfig>>> {
     const requestId = context.awsRequestId
     const quoteId = requestId.substring(0, 5)
-    const logLevel = bunyan.INFO
+    // Sample 10% of all requests at the INFO log level for debugging purposes.
+    // All other requests will only log warnings and errors.
+    // Note that we use WARN as a default rather than ERROR
+    // to capture Tapcompare logs in the smart-order-router.
+    const logLevel = Math.random() < 0.1 ? bunyan.INFO : bunyan.WARN
 
     const { tokenInAddress, tokenInChainId, tokenOutAddress, amount, type, algorithm, gasPriceWei } = requestQueryParams
 
@@ -78,6 +82,7 @@ export class QuoteHandlerInjector extends InjectorSOR<
       v2SubgraphProvider,
       gasPriceProvider: gasPriceProviderOnChain,
       simulator,
+      routeCachingProvider,
     } = dependencies[chainIdEnum]!
 
     let onChainQuoteProvider = dependencies[chainIdEnum]!.onChainQuoteProvider
@@ -106,6 +111,7 @@ export class QuoteHandlerInjector extends InjectorSOR<
           v2QuoteProvider,
           v2SubgraphProvider,
           simulator,
+          routeCachingProvider,
         })
         break
     }

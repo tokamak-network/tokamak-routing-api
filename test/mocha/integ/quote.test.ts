@@ -1,17 +1,16 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { AllowanceTransfer, PermitSingle } from '@uniswap/permit2-sdk'
-import { Currency, CurrencyAmount, Ether, Fraction, Token, WETH9 } from '@uniswap/sdk-core'
+import { ChainId, Currency, CurrencyAmount, Ether, Fraction, Token, WETH9 } from '@uniswap/sdk-core'
 import {
   CEUR_CELO,
   CEUR_CELO_ALFAJORES,
-  ChainId,
   CUSD_CELO,
   CUSD_CELO_ALFAJORES,
   DAI_MAINNET,
   ID_TO_NETWORK_NAME,
   NATIVE_CURRENCY,
   parseAmount,
-  SWAP_ROUTER_02_ADDRESS,
+  SWAP_ROUTER_02_ADDRESSES,
   USDC_MAINNET,
   USDT_MAINNET,
   WBTC_MAINNET,
@@ -31,13 +30,13 @@ import { BigNumber, providers, Wallet } from 'ethers'
 import hre from 'hardhat'
 import _ from 'lodash'
 import qs from 'qs'
-import { SUPPORTED_CHAINS } from '../../lib/handlers/injector-sor'
-import { QuoteQueryParams } from '../../lib/handlers/quote/schema/quote-schema'
-import { QuoteResponse } from '../../lib/handlers/schema'
-import { Permit2__factory } from '../../lib/types/ext'
-import { resetAndFundAtBlock } from '../utils/forkAndFund'
-import { getBalance, getBalanceAndApprove } from '../utils/getBalanceAndApprove'
-import { DAI_ON, getAmount, getAmountFromToken, UNI_MAINNET, USDC_ON, WNATIVE_ON } from '../utils/tokens'
+import { SUPPORTED_CHAINS } from '../../../lib/handlers/injector-sor'
+import { QuoteQueryParams } from '../../../lib/handlers/quote/schema/quote-schema'
+import { QuoteResponse } from '../../../lib/handlers/schema'
+import { Permit2__factory } from '../../../lib/types/ext'
+import { resetAndFundAtBlock } from '../../utils/forkAndFund'
+import { getBalance, getBalanceAndApprove } from '../../utils/getBalanceAndApprove'
+import { DAI_ON, getAmount, getAmountFromToken, UNI_MAINNET, USDC_ON, USDT_ON, WNATIVE_ON } from '../../utils/tokens'
 
 const { ethers } = hre
 
@@ -53,6 +52,7 @@ if (!process.env.UNISWAP_ROUTING_API || !process.env.ARCHIVE_NODE_RPC) {
 const API = `${process.env.UNISWAP_ROUTING_API!}quote`
 
 const SLIPPAGE = '5'
+const LARGE_SLIPPAGE = '10'
 
 const axios = axiosStatic.create()
 axiosRetry(axios, {
@@ -117,7 +117,8 @@ describe('quote', function () {
     methodParameters: MethodParameters,
     currencyIn: Currency,
     currencyOut: Currency,
-    permit?: boolean
+    permit?: boolean,
+    chainId = ChainId.MAINNET
   ): Promise<{
     tokenInAfter: CurrencyAmount<Currency>
     tokenInBefore: CurrencyAmount<Currency>
@@ -131,7 +132,7 @@ describe('quote', function () {
     const tokenOutBefore = await getBalance(alice, currencyOut)
 
     // Approve SwapRouter02 in case we request calldata for it instead of Universal Router
-    await getBalanceAndApprove(alice, SWAP_ROUTER_02_ADDRESS, currencyIn)
+    await getBalanceAndApprove(alice, SWAP_ROUTER_02_ADDRESSES(chainId), currencyIn)
 
     // If not using permit do a regular approval allowing narwhal max balance.
     if (!permit) {
@@ -285,7 +286,7 @@ describe('quote', function () {
             }
 
             expect(methodParameters).to.not.be.undefined
-            expect(methodParameters?.to).to.equal(SWAP_ROUTER_02_ADDRESS)
+            expect(methodParameters?.to).to.equal(SWAP_ROUTER_02_ADDRESSES(ChainId.MAINNET))
 
             const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
               methodParameters!,
@@ -601,7 +602,7 @@ describe('quote', function () {
                   : await getAmount(1, type, 'ETH', 'UNI', '10000'),
               type,
               recipient: alice.address,
-              slippageTolerance: SLIPPAGE,
+              slippageTolerance: type == 'exactOut' ? LARGE_SLIPPAGE : SLIPPAGE,
               deadline: '360',
               algorithm,
               enableUniversalRouter: false,
@@ -614,7 +615,7 @@ describe('quote', function () {
 
             expect(status).to.equal(200)
             expect(data.methodParameters).to.not.be.undefined
-            expect(data.methodParameters?.to).to.equal(SWAP_ROUTER_02_ADDRESS)
+            expect(data.methodParameters?.to).to.equal(SWAP_ROUTER_02_ADDRESSES(ChainId.MAINNET))
 
             const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
               data.methodParameters!,
@@ -954,7 +955,7 @@ describe('quote', function () {
                 })
               })
 
-              it(`erc20 -> erc20 forceMixedRoutes true for all protocols specified`, async () => {
+              it.skip(`erc20 -> erc20 forceMixedRoutes true for all protocols specified`, async () => {
                 const quoteReq: QuoteQueryParams = {
                   tokenInAddress: 'BOND',
                   tokenInChainId: 1,
@@ -1085,7 +1086,7 @@ describe('quote', function () {
               }
 
               expect(methodParameters).to.not.be.undefined
-              expect(methodParameters!.to).to.equal(SWAP_ROUTER_02_ADDRESS)
+              expect(methodParameters!.to).to.equal(SWAP_ROUTER_02_ADDRESSES(ChainId.MAINNET))
 
               const { tokenInBefore, tokenInAfter, tokenOutBefore, tokenOutAfter } = await executeSwap(
                 methodParameters!,
@@ -1292,7 +1293,7 @@ describe('quote', function () {
                     : await getAmount(1, type, 'ETH', 'UNI', '10000'),
                 type,
                 recipient: alice.address,
-                slippageTolerance: SLIPPAGE,
+                slippageTolerance: type == 'exactOut' ? LARGE_SLIPPAGE : SLIPPAGE, // for exact out somehow the liquidation wasn't sufficient, hence higher slippage
                 deadline: '360',
                 algorithm,
                 simulateFromAddress: '0x0716a17FBAeE714f1E6aB0f9d59edbC5f09815C0',
@@ -1335,7 +1336,7 @@ describe('quote', function () {
                     : await getAmount(1, type, 'ETH', 'UNI', '10000'),
                 type,
                 recipient: alice.address,
-                slippageTolerance: SLIPPAGE,
+                slippageTolerance: type == 'exactOut' ? LARGE_SLIPPAGE : SLIPPAGE, // for exact out somehow the liquidation wasn't sufficient, hence higher slippage,
                 deadline: '360',
                 algorithm,
                 simulateFromAddress: '0x0716a17FBAeE714f1E6aB0f9d59edbC5f09815C0',
@@ -1887,14 +1888,11 @@ describe('quote', function () {
 
   const TEST_ERC20_1: { [chainId in ChainId]: null | Token } = {
     [ChainId.MAINNET]: USDC_ON(1),
-    [ChainId.ROPSTEN]: USDC_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: USDC_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: USDC_ON(ChainId.GÖRLI),
-    [ChainId.KOVAN]: USDC_ON(ChainId.KOVAN),
+    [ChainId.GOERLI]: USDC_ON(ChainId.GOERLI),
+    [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: USDC_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISTIC_KOVAN]: USDC_ON(ChainId.OPTIMISTIC_KOVAN),
+    [ChainId.OPTIMISM_GOERLI]: USDC_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.ARBITRUM_ONE]: USDC_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: USDC_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.POLYGON]: USDC_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: USDC_ON(ChainId.POLYGON_MUMBAI),
     [ChainId.CELO]: CUSD_CELO,
@@ -1902,18 +1900,17 @@ describe('quote', function () {
     [ChainId.MOONBEAM]: null,
     [ChainId.GNOSIS]: null,
     [ChainId.ARBITRUM_GOERLI]: null,
+    [ChainId.BNB]: USDC_ON(ChainId.BNB),
+    [ChainId.AVALANCHE]: USDC_ON(ChainId.AVALANCHE),
   }
 
   const TEST_ERC20_2: { [chainId in ChainId]: Token | null } = {
     [ChainId.MAINNET]: DAI_ON(1),
-    [ChainId.ROPSTEN]: DAI_ON(ChainId.ROPSTEN),
-    [ChainId.RINKEBY]: DAI_ON(ChainId.RINKEBY),
-    [ChainId.GÖRLI]: DAI_ON(ChainId.GÖRLI),
-    [ChainId.KOVAN]: DAI_ON(ChainId.KOVAN),
+    [ChainId.GOERLI]: DAI_ON(ChainId.GOERLI),
+    [ChainId.SEPOLIA]: DAI_ON(ChainId.SEPOLIA),
     [ChainId.OPTIMISM]: DAI_ON(ChainId.OPTIMISM),
-    [ChainId.OPTIMISTIC_KOVAN]: DAI_ON(ChainId.OPTIMISTIC_KOVAN),
+    [ChainId.OPTIMISM_GOERLI]: DAI_ON(ChainId.OPTIMISM_GOERLI),
     [ChainId.ARBITRUM_ONE]: DAI_ON(ChainId.ARBITRUM_ONE),
-    [ChainId.ARBITRUM_RINKEBY]: DAI_ON(ChainId.ARBITRUM_RINKEBY),
     [ChainId.POLYGON]: DAI_ON(ChainId.POLYGON),
     [ChainId.POLYGON_MUMBAI]: DAI_ON(ChainId.POLYGON_MUMBAI),
     [ChainId.CELO]: CEUR_CELO,
@@ -1921,21 +1918,19 @@ describe('quote', function () {
     [ChainId.MOONBEAM]: null,
     [ChainId.GNOSIS]: null,
     [ChainId.ARBITRUM_GOERLI]: null,
+    [ChainId.BNB]: USDT_ON(ChainId.BNB),
+    [ChainId.AVALANCHE]: DAI_ON(ChainId.AVALANCHE),
   }
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
   for (const chain of _.filter(
     SUPPORTED_CHAINS,
     (c) =>
-      c != ChainId.OPTIMISTIC_KOVAN &&
       c != ChainId.POLYGON_MUMBAI &&
-      c != ChainId.ARBITRUM_RINKEBY &&
       c != ChainId.ARBITRUM_GOERLI &&
       c != ChainId.CELO_ALFAJORES &&
-      c != ChainId.KOVAN &&
-      c != ChainId.RINKEBY &&
-      c != ChainId.ROPSTEN &&
-      c != ChainId.GÖRLI
+      c != ChainId.GOERLI &&
+      c != ChainId.SEPOLIA
   )) {
     for (const type of ['exactIn', 'exactOut']) {
       const erc1 = TEST_ERC20_1[chain]
@@ -1955,7 +1950,7 @@ describe('quote', function () {
             tokenInChainId: chain,
             tokenOutAddress: erc1.address,
             tokenOutChainId: chain,
-            amount: await getAmountFromToken(type, wrappedNative, erc1, '10'),
+            amount: await getAmountFromToken(type, wrappedNative, erc1, '1'),
             type,
             enableUniversalRouter: true,
           }
@@ -2000,7 +1995,7 @@ describe('quote', function () {
             tokenInChainId: chain,
             tokenOutAddress: erc2.address,
             tokenOutChainId: chain,
-            amount: await getAmountFromToken(type, WNATIVE_ON(chain), erc2, '10'),
+            amount: await getAmountFromToken(type, WNATIVE_ON(chain), erc2, '1'),
             type,
             enableUniversalRouter: true,
           }

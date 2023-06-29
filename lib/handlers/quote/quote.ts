@@ -2,7 +2,7 @@ import Joi from '@hapi/joi'
 import { Protocol } from '@uniswap/router-sdk'
 import { UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk'
 import { PermitSingle } from '@uniswap/permit2-sdk'
-import { Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
+import { ChainId, Currency, CurrencyAmount, TradeType } from '@uniswap/sdk-core'
 import {
   AlphaRouterConfig,
   IRouter,
@@ -12,7 +12,13 @@ import {
   SwapOptions,
   SwapType,
   SimulationStatus,
+  IMetric,
+  ID_TO_NETWORK_NAME,
 } from '@tokamak-network/tokamak-smart-order-router'
+// import {
+//   IMetric,
+//   ID_TO_NETWORK_NAME,
+// } from '@uniswap/smart-order-router'
 import { Pool } from '@uniswap/v3-sdk'
 import JSBI from 'jsbi'
 import _ from 'lodash'
@@ -28,6 +34,8 @@ import {
 import { QuoteQueryParams, QuoteQueryParamsJoi } from './schema/quote-schema'
 import { utils } from 'ethers'
 import { simulationStatusToString } from './util/simulation'
+import Logger from 'bunyan'
+import { PAIRS_TO_TRACK } from './util/pairs-to-track'
 
 export class QuoteHandler extends APIGLambdaHandler<
   ContainerInjected,
@@ -37,6 +45,56 @@ export class QuoteHandler extends APIGLambdaHandler<
   QuoteResponse
 > {
   public async handleRequest(
+    params: HandleRequestParams<ContainerInjected, RequestInjected<IRouter<any>>, void, QuoteQueryParams>
+  ): Promise<Response<QuoteResponse> | ErrorResponse> {
+    const { chainId, metric, log } = params.requestInjected
+    const startTime = Date.now()
+
+    let result: Response<QuoteResponse> | ErrorResponse
+
+    try {
+      result = await this.handleRequestInternal(params)
+
+      switch (result.statusCode) {
+        case 200:
+        case 202:
+          metric.putMetric(`GET_QUOTE_200_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
+          break
+        case 400:
+        case 403:
+        case 404:
+        case 408:
+        case 409:
+          metric.putMetric(`GET_QUOTE_400_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
+          log.error(
+            {
+              statusCode: result?.statusCode,
+              errorCode: result?.errorCode,
+              detail: result?.detail,
+            },
+            `Quote 4XX Error [${result?.statusCode}] on ${ID_TO_NETWORK_NAME(chainId)} with errorCode '${
+              result?.errorCode
+            }': ${result?.detail}`
+          )
+          break
+        case 500:
+          metric.putMetric(`GET_QUOTE_500_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
+          break
+      }
+    } catch (err) {
+      metric.putMetric(`GET_QUOTE_500_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
+
+      throw err
+    } finally {
+      // This metric is logged after calling the internal handler to correlate with the status metrics
+      metric.putMetric(`GET_QUOTE_REQUESTED_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
+      metric.putMetric(`GET_QUOTE_LATENCY_CHAIN_${chainId}`, Date.now() - startTime, MetricLoggerUnit.Milliseconds)
+    }
+
+    return result
+  }
+
+  private async handleRequestInternal(
     params: HandleRequestParams<ContainerInjected, RequestInjected<IRouter<any>>, void, QuoteQueryParams>
   ): Promise<Response<QuoteResponse> | ErrorResponse> {
     const {
@@ -74,10 +132,10 @@ export class QuoteHandler extends APIGLambdaHandler<
         metric,
       },
     } = params
-    metric.putMetric(`GET_QUOTE_REQUESTED_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
 
     // Parse user provided token address/symbol to Currency object.
     let before = Date.now()
+    const startTime = Date.now()
 
     const currencyIn = await tokenStringToCurrency(
       tokenListProvider,
@@ -98,7 +156,6 @@ export class QuoteHandler extends APIGLambdaHandler<
     metric.putMetric('TokenInOutStrToToken', Date.now() - before, MetricLoggerUnit.Milliseconds)
 
     if (!currencyIn) {
-      metric.putMetric(`GET_QUOTE_400_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
       return {
         statusCode: 400,
         errorCode: 'TOKEN_IN_INVALID',
@@ -107,7 +164,6 @@ export class QuoteHandler extends APIGLambdaHandler<
     }
 
     if (!currencyOut) {
-      metric.putMetric(`GET_QUOTE_400_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
       return {
         statusCode: 400,
         errorCode: 'TOKEN_OUT_INVALID',
@@ -116,7 +172,6 @@ export class QuoteHandler extends APIGLambdaHandler<
     }
 
     if (tokenInChainId != tokenOutChainId) {
-      metric.putMetric(`GET_QUOTE_400_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
       return {
         statusCode: 400,
         errorCode: 'TOKEN_CHAINS_DIFFERENT',
@@ -125,7 +180,6 @@ export class QuoteHandler extends APIGLambdaHandler<
     }
 
     if (currencyIn.equals(currencyOut)) {
-      metric.putMetric(`GET_QUOTE_400_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
       return {
         statusCode: 400,
         errorCode: 'TOKEN_IN_OUT_SAME',
@@ -159,6 +213,7 @@ export class QuoteHandler extends APIGLambdaHandler<
     }
 
     const routingConfig: AlphaRouterConfig = {
+      //@ts-ignore
       ...DEFAULT_ROUTING_CONFIG_BY_CHAIN(chainId),
       ...(minSplits ? { minSplits } : {}),
       ...(forceCrossProtocol ? { forceCrossProtocol } : {}),
@@ -442,6 +497,8 @@ export class QuoteHandler extends APIGLambdaHandler<
       routeResponse.push(curRoute)
     }
 
+    const routeString = routeAmountsToString(route)
+
     const result: QuoteResponse = {
       methodParameters,
       blockNumber: blockNumber.toString(),
@@ -459,14 +516,91 @@ export class QuoteHandler extends APIGLambdaHandler<
       simulationError: simulationStatus == SimulationStatus.Failed,
       gasPriceWei: gasPriceWei.toString(),
       route: routeResponse,
-      routeString: routeAmountsToString(route),
+      routeString,
       quoteId,
     }
 
-    metric.putMetric(`GET_QUOTE_200_CHAINID: ${chainId}`, 1, MetricLoggerUnit.Count)
+    this.logRouteMetrics(
+      log,
+      metric,
+      startTime,
+      currencyIn,
+      currencyOut,
+      tokenInAddress,
+      tokenOutAddress,
+      type,
+      //@ts-ignore
+      chainId,
+      amount,
+      routeString
+    )
+
     return {
       statusCode: 200,
       body: result,
+    }
+  }
+
+  private logRouteMetrics(
+    log: Logger,
+    metric: IMetric,
+    startTime: number,
+    currencyIn: Currency,
+    currencyOut: Currency,
+    tokenInAddress: string,
+    tokenOutAddress: string,
+    tradeType: 'exactIn' | 'exactOut',
+    chainId: ChainId,
+    amount: CurrencyAmount<Currency>,
+    routeString: string
+  ): void {
+    const tradingPair = `${currencyIn.wrapped.symbol}/${currencyOut.wrapped.symbol}`
+    const wildcardInPair = `${currencyIn.wrapped.symbol}/*`
+    const wildcardOutPair = `*/${currencyOut.wrapped.symbol}`
+    const tradeTypeEnumValue = tradeType == 'exactIn' ? TradeType.EXACT_INPUT : TradeType.EXACT_OUTPUT
+    const pairsTracked = PAIRS_TO_TRACK.get(chainId)?.get(tradeTypeEnumValue)
+
+    if (
+      pairsTracked?.includes(tradingPair) ||
+      pairsTracked?.includes(wildcardInPair) ||
+      pairsTracked?.includes(wildcardOutPair)
+    ) {
+      const metricPair = pairsTracked?.includes(tradingPair)
+        ? tradingPair
+        : pairsTracked?.includes(wildcardInPair)
+        ? wildcardInPair
+        : wildcardOutPair
+
+      metric.putMetric(
+        `GET_QUOTE_AMOUNT_${metricPair}_${tradeType.toUpperCase()}_CHAIN_${chainId}`,
+        Number(amount.toExact()),
+        MetricLoggerUnit.None
+      )
+
+      metric.putMetric(
+        `GET_QUOTE_LATENCY_${metricPair}_${tradeType.toUpperCase()}_CHAIN_${chainId}`,
+        Date.now() - startTime,
+        MetricLoggerUnit.Milliseconds
+      )
+      // Create a hashcode from the routeString, this will indicate that a different route is being used
+      // hashcode function copied from: https://gist.github.com/hyamamoto/fd435505d29ebfa3d9716fd2be8d42f0?permalink_comment_id=4261728#gistcomment-4261728
+      const routeStringHash = Math.abs(
+        routeString.split('').reduce((s, c) => (Math.imul(31, s) + c.charCodeAt(0)) | 0, 0)
+      )
+      // Log the chose route
+      log.info(
+        {
+          tradingPair,
+          tokenInAddress,
+          tokenOutAddress,
+          tradeType,
+          amount: amount.toExact(),
+          routeString,
+          routeStringHash,
+          chainId,
+        },
+        `Tracked Route for pair [${tradingPair}/${tradeType.toUpperCase()}] on chain [${chainId}] with route hash [${routeStringHash}] for amount [${amount.toExact()}]`
+      )
     }
   }
 
