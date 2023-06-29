@@ -23,6 +23,12 @@ export const chainProtocols = [
   },
   {
     protocol: Protocol.V3,
+    chainId: ChainId.TITAN,
+    timeout: 90000,
+    provider: new V3SubgraphProvider(ChainId.TITAN, 3, 90000),
+  },
+  {
+    protocol: Protocol.V3,
     chainId: ChainId.GÖRLI,
     timeout: 90000,
     provider: new V3SubgraphProvider(ChainId.GÖRLI, 3, 90000),

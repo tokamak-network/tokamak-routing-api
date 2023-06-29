@@ -46,6 +46,7 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.TOKAMAK_GOERLI,
   ChainId.MAINNET,
   ChainId.GÖRLI,
+  ChainId.TITAN
 ]
 const DEFAULT_TOKEN_LIST = 'https://gateway.ipfs.io/ipns/tokens.uniswap.org'
 
