@@ -719,6 +719,8 @@ describe('quote-to-ratio', async function () {
     [ChainId.CELO_ALFAJORES]: CUSD_CELO_ALFAJORES,
     [ChainId.MOONBEAM]: null,
     [ChainId.GNOSIS]: null,
+    [ChainId.TOKAMAK_GOERLI]: null,
+    [ChainId.TITAN]: null
   }
 
   const TEST_ERC20_2: { [chainId in ChainId]: Token | null } = {
@@ -738,6 +740,8 @@ describe('quote-to-ratio', async function () {
     [ChainId.MOONBEAM]: null,
     [ChainId.GNOSIS]: null,
     [ChainId.ARBITRUM_GOERLI]: null,
+    [ChainId.TOKAMAK_GOERLI]: null,
+    [ChainId.TITAN]: null
   }
 
   for (const chain of _.filter(

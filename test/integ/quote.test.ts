@@ -131,7 +131,7 @@ describe('quote', function () {
     const tokenOutBefore = await getBalance(alice, currencyOut)
 
     // Approve SwapRouter02 in case we request calldata for it instead of Universal Router
-    await getBalanceAndApprove(alice, SWAP_ROUTER_02_ADDRESS, currencyIn)
+    await getBalanceAndApprove(alice, SWAP_ROUTER_02_ADDRESS.toString(), currencyIn)
 
     // If not using permit do a regular approval allowing narwhal max balance.
     if (!permit) {
@@ -1902,6 +1902,8 @@ describe('quote', function () {
     [ChainId.MOONBEAM]: null,
     [ChainId.GNOSIS]: null,
     [ChainId.ARBITRUM_GOERLI]: null,
+    [ChainId.TOKAMAK_GOERLI]: null,
+    [ChainId.TITAN]: null
   }
 
   const TEST_ERC20_2: { [chainId in ChainId]: Token | null } = {
@@ -1921,6 +1923,8 @@ describe('quote', function () {
     [ChainId.MOONBEAM]: null,
     [ChainId.GNOSIS]: null,
     [ChainId.ARBITRUM_GOERLI]: null,
+    [ChainId.TOKAMAK_GOERLI]: null,
+    [ChainId.TITAN]: null
   }
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
