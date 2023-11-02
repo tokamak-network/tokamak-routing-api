@@ -152,7 +152,7 @@ export class RoutingAPIPipeline extends Stack {
 
     // Beta us-east-2
     const betaUsEast2Stage = new RoutingAPIStage(this, 'beta-us-east-2', {
-      env: { account: '005310045109', region: 'ap-northeast-2' },
+      env: { account: '156512274928', region: 'ap-northeast-2' },
       jsonRpcProviders: jsonRpcProviders,
       provisionedConcurrency: 20,
       ethGasStationInfoUrl: ethGasStationInfoUrl.secretValue.toString(),
@@ -172,7 +172,7 @@ export class RoutingAPIPipeline extends Stack {
 
     // Prod us-east-2
     const prodUsEast2Stage = new RoutingAPIStage(this, 'prod-us-east-2', {
-      env: { account: '005310045109', region: 'ap-northeast-2' },
+      env: { account: '156512274928', region: 'ap-northeast-2' },
       jsonRpcProviders: jsonRpcProviders,
       provisionedConcurrency: 100,
       ethGasStationInfoUrl: ethGasStationInfoUrl.secretValue.toString(),
@@ -258,7 +258,7 @@ const jsonRpcProviders = {
   WEB3_RPC_42220: process.env.JSON_RPC_PROVIDER_42220!,
   WEB3_RPC_44787: process.env.JSON_RPC_PROVIDER_44787!,
   WEB3_RPC_5050: process.env.JSON_RPC_PROVIDER_5050!,
-  WEB3_RPC_55004: process.env.JSON_RPC_PROVIDER_55004!
+  WEB3_RPC_55004: process.env.JSON_RPC_PROVIDER_55004!,
 }
 
 // Local dev stack
@@ -276,9 +276,9 @@ new RoutingAPIStack(app, 'RoutingAPIStack', {
   tenderlyUser: process.env.TENDERLY_USER!,
   tenderlyProject: process.env.TENDERLY_PROJECT!,
   tenderlyAccessKey: process.env.TENDERLY_ACCESS_KEY!,
-  env: { account: '005310045109', region: 'ap-northeast-2' },
+  env: { account: '156512274928', region: 'ap-northeast-2' },
 })
 
 new RoutingAPIPipeline(app, 'RoutingAPIPipelineStack', {
-  env: { account: '005310045109', region: 'ap-northeast-2' },
+  env: { account: '156512274928', region: 'ap-northeast-2' },
 })
