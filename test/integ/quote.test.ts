@@ -1903,7 +1903,8 @@ describe('quote', function () {
     [ChainId.GNOSIS]: null,
     [ChainId.ARBITRUM_GOERLI]: null,
     [ChainId.TOKAMAK_GOERLI]: null,
-    [ChainId.TITAN]: null
+    [ChainId.TITAN]: null,
+    [ChainId.SEPOLIA]: USDC_ON(ChainId.SEPOLIA),
   }
 
   const TEST_ERC20_2: { [chainId in ChainId]: Token | null } = {
@@ -1924,7 +1925,8 @@ describe('quote', function () {
     [ChainId.GNOSIS]: null,
     [ChainId.ARBITRUM_GOERLI]: null,
     [ChainId.TOKAMAK_GOERLI]: null,
-    [ChainId.TITAN]: null
+    [ChainId.TITAN]: null,
+    [ChainId.SEPOLIA]: DAI_ON(ChainId.SEPOLIA),
   }
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
